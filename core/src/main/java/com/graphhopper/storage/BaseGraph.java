@@ -821,6 +821,12 @@ public class BaseGraph implements Graph, Closeable {
         }
 
         @Override
+        public double getElevation()
+        {
+            return store.getEle(edgePointer);
+        }
+
+        @Override
         public EdgeIteratorState setDistance(double dist) {
             store.setDist(edgePointer, dist);
             return this;

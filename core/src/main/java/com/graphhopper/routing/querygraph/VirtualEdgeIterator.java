@@ -106,6 +106,11 @@ class VirtualEdgeIterator implements EdgeIterator {
     }
 
     @Override
+    public double getElevation() {
+        return getCurrentEdge().getElevation();
+    }
+
+    @Override
     public EdgeIteratorState setDistance(double dist) {
         return getCurrentEdge().setDistance(dist);
     }

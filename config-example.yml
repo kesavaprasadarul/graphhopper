@@ -30,13 +30,34 @@ graphhopper:
 
   profiles:
    - name: car
-#     turn_costs:
-#       vehicle_types: [motorcar, motor_vehicle]
-#       u_turn_costs: 60
+     turn_costs:
+       vehicle_types: [motorcar, motor_vehicle]
+       u_turn_costs: 60
 #     for more advanced turn costs, see #2957 or bike_tc.yml
      custom_model_files: [car.json]
 
-#   You can use the following in-built profiles. After you start GraphHopper it will print which encoded values you'll have to add to graph.encoded_values in this config file.
+   - name: small_truck
+     
+     turn_costs:
+       vehicle_types: [ hgv, motorcar, motor_vehicle ]
+     custom_model_files: [ truck.json ]
+
+   - name: truck_co2
+     cm_custom_bypass: "co2"
+     cm_version: "2"
+     turn_costs:
+       vehicle_types: [ hgv, motorcar, motor_vehicle ]
+     custom_model_files: [ truck.json ]
+
+   - name: truck_elevation
+     cm_custom_bypass: "elevation"
+     cm_version: "2"
+     turn_costs:
+       vehicle_types: [ hgv, motorcar, motor_vehicle ]
+     custom_model_files: [ truck.json ]
+
+
+  #   You can use the following in-built profiles. After you start GraphHopper it will print which encoded values you'll have to add to graph.encoded_values in this config file.
 #
 #    - name: foot
 #      custom_model_files: [foot.json, foot_elevation.json]
@@ -72,6 +93,9 @@ graphhopper:
   # usage) and the routing will also be slower than with `turn_costs: false`.
   profiles_ch:
     - profile: car
+    - profile: small_truck
+    - profile: truck_co2
+    - profile: truck_elevation
 
   # Hybrid mode:
   # Similar to speed mode, the hybrid mode (Landmarks, LM) also speeds up routing by doing calculating auxiliary data
@@ -92,7 +116,7 @@ graphhopper:
   #   surface,smoothness,max_width,max_height,max_weight,max_weight_except,hgv,max_axle_load,max_length,
   #   hazmat,hazmat_tunnel,hazmat_water,lanes,osm_way_id,toll,track_type,mtb_rating,hike_rating,horse_rating,
   #   country,curvature,average_slope,max_slope,car_temporal_access,bike_temporal_access,foot_temporal_access
-  graph.encoded_values: car_access, car_average_speed, road_access
+  graph.encoded_values: car_access, car_average_speed, road_access, country, max_slope, max_length, average_slope, max_axle_load, surface, curvature,toll,track_type, hgv, max_width, max_height, max_weight, max_weight_except
 
   #### Speed, hybrid and flexible mode ####
 
@@ -111,16 +135,16 @@ graphhopper:
   #### Elevation ####
 
   # To populate your graph with elevation data use SRTM, default is noop (no elevation). Read more about it in docs/core/elevation.md
-  # graph.elevation.provider: srtm
+  graph.elevation.provider: srtm
 
   # default location for cache is /tmp/srtm
-  # graph.elevation.cache_dir: ./srtmprovider/
+  #graph.elevation.cache_dir: ./srtmprovider/
 
   # If you have a slow disk or plenty of RAM change the default MMAP to:
   # graph.elevation.dataaccess: RAM_STORE
 
   # To enable bilinear interpolation when sampling elevation at points (default uses nearest neighbor):
-  # graph.elevation.interpolate: bilinear
+  #graph.elevation.interpolate: bilinear
 
   # Reduce ascend/descend per edge without changing the maximum slope:
   # graph.elevation.edge_smoothing: ramer
@@ -136,10 +160,10 @@ graphhopper:
   # against the additional storage space used for edge geometries. You should enable bilinear interpolation when using
   # these features (see #1953 for details).
   # - first, set the distance (in meters) at which elevation samples should be taken on long edges
-  # graph.elevation.long_edge_sampling_distance: 60
+  #graph.elevation.long_edge_sampling_distance: 60
   # - second, set the elevation tolerance (in meters) to use when simplifying polylines since the default ignores
   #   elevation and will remove the extra points that long edge sampling added
-  # graph.elevation.way_point_max_distance: 10
+  #graph.elevation.way_point_max_distance: 10
 
 
   #### Country-dependent defaults for max speeds ####
@@ -147,7 +171,7 @@ graphhopper:
   # This features sets a maximum speed in 'max_speed' encoded value if no maxspeed tag was found. It is country-dependent
   # and based on several rules. See https://github.com/westnordost/osm-legal-default-speeds
   # To use it uncomment the following, then enable urban density below and add 'country' to graph.encoded_values
-  # max_speed_calculator.enabled: true
+  #max_speed_calculator.enabled: true
 
 
   #### Urban density (built-up areas) ####

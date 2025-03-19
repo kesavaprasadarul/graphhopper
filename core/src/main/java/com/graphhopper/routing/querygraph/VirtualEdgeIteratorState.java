@@ -49,6 +49,7 @@ public class VirtualEdgeIteratorState implements EdgeIteratorState {
     private boolean unfavored;
     private EdgeIteratorState reverseEdge;
     private final boolean reverse;
+    private double elevation;
 
     public VirtualEdgeIteratorState(int originalEdgeKey, int edgeKey, int baseNode, int adjNode, double distance,
                                     IntsRef edgeFlags, Map<String, KVStorage.KValue> keyValues, PointList pointList, boolean reverse) {
@@ -62,6 +63,7 @@ public class VirtualEdgeIteratorState implements EdgeIteratorState {
         this.keyValues = keyValues;
         this.pointList = pointList;
         this.reverse = reverse;
+        this.elevation = 0;
     }
 
     /**
@@ -133,6 +135,11 @@ public class VirtualEdgeIteratorState implements EdgeIteratorState {
     @Override
     public double getDistance() {
         return distance;
+    }
+
+    @Override
+    public double getElevation() {
+        return elevation;
     }
 
     @Override

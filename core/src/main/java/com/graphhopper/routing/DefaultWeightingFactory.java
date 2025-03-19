@@ -29,6 +29,7 @@ import com.graphhopper.routing.weighting.TurnCostProvider;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.routing.weighting.custom.CustomModelParser;
 import com.graphhopper.routing.weighting.custom.CustomWeighting;
+import com.graphhopper.routing.weighting.custom.ElevationWeighting;
 import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.PMap;
@@ -82,7 +83,14 @@ public class DefaultWeightingFactory implements WeightingFactory {
             final CustomModel mergedCustomModel = CustomModel.merge(profile.getCustomModel(), queryCustomModel);
             if (requestHints.has(Parameters.Routing.HEADING_PENALTY))
                 mergedCustomModel.setHeadingPenalty(requestHints.getDouble(Parameters.Routing.HEADING_PENALTY, Parameters.Routing.DEFAULT_HEADING_PENALTY));
-            if (hints.has("cm_version")) {
+            if(hints.has("cm_custom_bypass"))
+            {
+                if (!hints.getString("cm_custom_bypass", "").equals("elevation"))
+                    weighting = CustomModelParser.CreateElevationWeighting(encodingManager, turnCostProvider, mergedCustomModel);
+                else
+                    weighting = CustomModelParser.CreateCO2Weighting(encodingManager, turnCostProvider, mergedCustomModel);
+            }
+            else if (hints.has("cm_version")) {
                 if (!hints.getString("cm_version", "").equals("2"))
                     throw new IllegalArgumentException("cm_version: \"2\" is required");
                 weighting = CustomModelParser.createWeighting2(encodingManager, turnCostProvider, mergedCustomModel);

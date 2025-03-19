@@ -159,6 +159,11 @@ class PtGraphAsAdjacencyList implements Graph {
             }
 
             @Override
+            public double getElevation() {
+                throw new RuntimeException();
+            }
+
+            @Override
             public EdgeIteratorState setDistance(double dist) {
                 throw new RuntimeException();
             }

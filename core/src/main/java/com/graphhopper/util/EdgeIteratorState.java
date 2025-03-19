@@ -157,6 +157,8 @@ public interface EdgeIteratorState {
      */
     double getDistance();
 
+    double getElevation();
+
     EdgeIteratorState setDistance(double dist);
 
     /**

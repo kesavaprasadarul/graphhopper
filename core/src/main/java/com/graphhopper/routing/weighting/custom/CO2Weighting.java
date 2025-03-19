@@ -1,4 +1,4 @@
-/*
+    /*
  *  Licensed to GraphHopper GmbH under one or more contributor
  *  license agreements. See the NOTICE file distributed with this work for
  *  additional information regarding copyright ownership.
@@ -17,10 +17,15 @@
  */
 package com.graphhopper.routing.weighting.custom;
 
+import com.graphhopper.routing.ev.IntEncodedValue;
+import com.graphhopper.routing.util.CO2Engine;
 import com.graphhopper.routing.weighting.TurnCostProvider;
 import com.graphhopper.routing.weighting.Weighting;
+import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.EdgeIteratorState;
+import com.graphhopper.util.FetchMode;
+import com.graphhopper.util.PointList;
 
 import static com.graphhopper.routing.weighting.TurnCostProvider.NO_TURN_COST_PROVIDER;
 
@@ -69,23 +74,17 @@ import static com.graphhopper.routing.weighting.TurnCostProvider.NO_TURN_COST_PR
  * calculated via the speed_factor is simply overwritten. Edges that are not accessible according to the access flags of
  * the base vehicle always get assigned an infinite weight and this cannot be changed (yet) using this weighting.
  */
-public class CustomWeighting implements Weighting {
-    public static final String NAME = "custom";
+public final class CO2Weighting extends CustomWeighting {
+    public static final String NAME = "carbon_weighting";
 
     /**
      * Converting to seconds is not necessary but makes adding other penalties easier (e.g. turn
      * costs or traffic light costs etc)
      */
-    protected static double SPEED_CONV = 3.6;
-    protected double distanceInfluence;
-    protected double headingPenaltySeconds;
-    protected EdgeToDoubleMapping edgeToSpeedMapping;
-    protected EdgeToDoubleMapping edgeToPriorityMapping;
-    protected TurnCostProvider turnCostProvider;
-    protected MaxCalc maxPrioCalc;
-    protected MaxCalc maxSpeedCalc;
-
-    public CustomWeighting(TurnCostProvider turnCostProvider, Parameters parameters) {
+    private CO2Engine engine;
+    public CO2Weighting(TurnCostProvider turnCostProvider, CustomWeighting.Parameters parameters) {
+        super(turnCostProvider, parameters);
+        this.engine = new CO2Engine(new CO2Engine.CO2Profile());
         if (!Weighting.isValidName(getName()))
             throw new IllegalStateException("Not a valid name for a Weighting: " + getName());
         this.turnCostProvider = turnCostProvider;
@@ -109,19 +108,47 @@ public class CustomWeighting implements Weighting {
         return 1d / (maxSpeedCalc.calcMax() / SPEED_CONV) / maxPrioCalc.calcMax() + distanceInfluence;
     }
 
+    private final int EARTH_RADIUS = 6371;
+    private final double CO2_Baseline_9RD = 1110.2;
+    private final double CO2_FACTOR_MULTIPLER = 0.65;
     @Override
     public double calcEdgeWeight(EdgeIteratorState edgeState, boolean reverse) {
-        double priority = edgeToPriorityMapping.get(edgeState, reverse);
-        if (priority == 0) return Double.POSITIVE_INFINITY;
-
+        var baseWeight = super.calcEdgeWeight(edgeState, reverse);
         final double distance = edgeState.getDistance();
+        double speed = edgeToSpeedMapping.get(edgeState, reverse);
         double seconds = calcSeconds(distance, edgeState, reverse);
-        if (Double.isInfinite(seconds)) return Double.POSITIVE_INFINITY;
-        // add penalty at start/stop/via points
-        if (edgeState.get(EdgeIteratorState.UNFAVORED_EDGE)) seconds += headingPenaltySeconds;
-        double distanceCosts = distance * distanceInfluence;
-        if (Double.isInfinite(distanceCosts)) return Double.POSITIVE_INFINITY;
-        return seconds / priority + distanceCosts;
+        var geometry = ((EdgeIteratorState) edgeState).fetchWayGeometry(FetchMode.TOWER_ONLY);
+        var CO2 = CalculateAverageCO2(geometry, speed);
+        var CO2Costs = (CO2 / CO2_Baseline_9RD) * CO2_FACTOR_MULTIPLER;
+        return baseWeight + CO2Costs;
+    }
+
+    double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        double lat1Rad = Math.toRadians(lat1);
+        double lat2Rad = Math.toRadians(lat2);
+        double lon1Rad = Math.toRadians(lon1);
+        double lon2Rad = Math.toRadians(lon2);
+
+        double x = (lon2Rad - lon1Rad) * Math.cos((lat1Rad + lat2Rad) / 2);
+        double y = (lat2Rad - lat1Rad);
+
+        return Math.sqrt(x * x + y * y) * EARTH_RADIUS;
+    }
+    double CalculateAverageCO2(PointList Geometry, double speed)
+    {
+        double accumulatedCO2 = 0;
+        for (int i = 0; i < Geometry.size() - 1; i++) {
+            var point1 = Geometry.get(i);
+            var point2 = Geometry.get(i + 1);
+            if(point1.isValid() && point2.isValid()) {
+                var elevationDiff = point1.ele - point2.ele;
+                var distance = calculateDistance(point1.getLat(), point2.getLat(), point1.getLon(), point2.getLon());
+                var angleDeg = Math.toDegrees(Math.atan2(elevationDiff, distance));
+                var duration = distance / speed * SPEED_CONV;
+                accumulatedCO2 += engine.getFuelEmissionsCharacteristics(distance,angleDeg).get("co2_consumption_g");
+            }
+        }
+        return accumulatedCO2;
     }
 
     double calcSeconds(double distance, EdgeIteratorState edgeState, boolean reverse) {
@@ -169,47 +196,4 @@ public class CustomWeighting implements Weighting {
         double calcMax();
     }
 
-    public static class Parameters {
-        private final EdgeToDoubleMapping edgeToSpeedMapping;
-        private final EdgeToDoubleMapping edgeToPriorityMapping;
-        private final MaxCalc maxSpeedCalc;
-        private final MaxCalc maxPrioCalc;
-        private final double distanceInfluence;
-        private final double headingPenaltySeconds;
-
-        public Parameters(EdgeToDoubleMapping edgeToSpeedMapping, MaxCalc maxSpeedCalc,
-                          EdgeToDoubleMapping edgeToPriorityMapping, MaxCalc maxPrioCalc,
-                          double distanceInfluence, double headingPenaltySeconds) {
-            this.edgeToSpeedMapping = edgeToSpeedMapping;
-            this.maxSpeedCalc = maxSpeedCalc;
-            this.edgeToPriorityMapping = edgeToPriorityMapping;
-            this.maxPrioCalc = maxPrioCalc;
-            this.distanceInfluence = distanceInfluence;
-            this.headingPenaltySeconds = headingPenaltySeconds;
-        }
-
-        public EdgeToDoubleMapping getEdgeToSpeedMapping() {
-            return edgeToSpeedMapping;
-        }
-
-        public EdgeToDoubleMapping getEdgeToPriorityMapping() {
-            return edgeToPriorityMapping;
-        }
-
-        public MaxCalc getMaxSpeedCalc() {
-            return maxSpeedCalc;
-        }
-
-        public MaxCalc getMaxPrioCalc() {
-            return maxPrioCalc;
-        }
-
-        public double getDistanceInfluence() {
-            return distanceInfluence;
-        }
-
-        public double getHeadingPenaltySeconds() {
-            return headingPenaltySeconds;
-        }
-    }
 }

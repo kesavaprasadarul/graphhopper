@@ -86,6 +86,20 @@ public class CustomModelParser {
         return new CustomWeighting2(turnCostProvider, parameters);
     }
 
+    public static CO2Weighting CreateCO2Weighting(EncodedValueLookup lookup, TurnCostProvider turnCostProvider, CustomModel customModel) {
+        if (customModel == null)
+            throw new IllegalStateException("CustomModel cannot be null");
+        CustomWeighting.Parameters parameters = createWeightingParameters(customModel, lookup);
+        return new CO2Weighting(turnCostProvider, parameters);
+    }
+
+    public static ElevationWeighting CreateElevationWeighting(EncodedValueLookup lookup, TurnCostProvider turnCostProvider, CustomModel customModel) {
+        if (customModel == null)
+            throw new IllegalStateException("CustomModel cannot be null");
+        CustomWeighting.Parameters parameters = createWeightingParameters(customModel, lookup);
+        return new ElevationWeighting(turnCostProvider, parameters);
+    }
+
     /**
      * This method compiles a new subclass of CustomWeightingHelper composed of the provided CustomModel caches this
      * and returns an instance.
