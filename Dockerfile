@@ -17,4 +17,4 @@ ENV MAP_FILE=berlin-latest.osm.pbf
 EXPOSE 8989
 
 # Run GraphHopper server
-CMD ["java", "-Ddw.graphhopper.datareader.file=${MAP_FILE}", "-jar", "graphhopper-web-10.0.jar", "server", "${CONFIG_FILE}"]
+CMD sh -c "java -Ddw.graphhopper.datareader.file=${MAP_FILE} -jar graphhopper-web-10.0.jar server ${CONFIG_FILE}"
