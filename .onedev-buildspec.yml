@@ -12,6 +12,10 @@ jobs:
     name: Docker Build
     output: !RegistryOutput
       tags: git.de.kesava89.studio/kesavaprasadarul/graphhopper/graphhopper
+    registryLogins:
+    - registryUrl: '@server_url@'
+      userName: '@job_token@'
+      passwordSecret: access-token
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   retryCondition: never
   maxRetries: 3
