@@ -11,7 +11,7 @@ jobs:
   - !BuildImageStep
     name: Docker Build
     output: !RegistryOutput
-      tags: git.de.kesava89.studio/kesavaprasadarul/graphhopper/graphhopper
+      tags: git.de.kesava89.studio/kesavaprasadarul/graphhopper/graphhopper:@commit_hash@ git.de.kesava89.studio/kesavaprasadarul/graphhopper/graphhopper:latest
     registryLogins:
     - registryUrl: '@server_url@'
       userName: '@job_token@'
